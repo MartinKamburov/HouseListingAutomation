@@ -1,0 +1,12 @@
+{
+    "base_directory": "",
+    "fb_username": "",
+    "fb_password": "",
+    "proxy": {
+        "host": "",
+        "port": 22225,
+        "username": "",
+        "password": "",
+        "country_code": ""
+    }
+}

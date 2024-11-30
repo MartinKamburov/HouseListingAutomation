@@ -1,0 +1,12 @@
+{
+    "base_directory": "C:/Users/marti/OneDrive/Desktop/Software Projects/FacebookListingAutomator/images",
+    "fb_username": "",
+    "fb_password": "",
+    "proxy": {
+        "host": "",
+        "port": 22225,
+        "username": "",
+        "password": "",
+        "country_code": ""
+    }
+}

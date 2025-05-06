@@ -1,0 +1,5 @@
+# From the command prompt run this (first time only):
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+# Then:
+.\setup_house_listingScript.ps1

@@ -1,6 +1,6 @@
 How to run script (MUST HAVE INSTALLED PYTHON 3 OR HIGHER):
 
-Steps to setup initially (if you ran the startup script don't do this step):
+Steps to setup initially (if you ran the startup_script.ps1 don't do this step):
 - Change the proper credentials in config.json
 
 - python -m venv scraping

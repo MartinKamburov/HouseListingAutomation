@@ -16,4 +16,4 @@ Steps to run the program:
 - If you have Windows:
     - .\scraping\scripts\activate.ps1
 
-- streamlit run main.py
+- streamlit run main.py or python -m streamlit run main.py

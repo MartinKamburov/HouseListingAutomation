@@ -1,5 +1,0 @@
-# In terminal put:
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-
-# Then:
-.\startup_script.ps1

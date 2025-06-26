@@ -1,0 +1,7 @@
+# Make a file in vs code called startup_script.ps1 and copy everything from my GitHub file startup_script.ps1 into it. 
+
+# In terminal put:
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+# Then:
+.\startup_script.ps1

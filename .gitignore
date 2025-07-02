@@ -4,4 +4,4 @@ ImagesGoHere/
 __pycache__/
 
 # now ignore JSON files whole-project
-*.json
+config.json

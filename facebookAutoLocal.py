@@ -1,5 +1,6 @@
 import json
 import csv
+import re
 import zipfile
 import string
 import os
@@ -285,10 +286,12 @@ def post_facebook_ads(listings_data):
                     )
 
 
-                    # Clear the input field and type the desired value
-                    PropertyAddress_input.clear()
-                    slow_typing(PropertyAddress_input, listing['address'])  # Slowly type the address
+                    raw = listing['address']
+                    normalized = raw.strip().replace('\n', ', ')
+                    address_no_unit = re.sub(r"\s+\S+(?=,)", "", normalized)
 
+                    PropertyAddress_input.clear()
+                    fast_typing(PropertyAddress_input, address_no_unit)
                     time.sleep(2)
 
                     # Wait for the first <li> element in the suggestion list to appear and click it
@@ -601,10 +604,12 @@ def post_facebook_ads(listings_data):
                         ))
                     )
 
-                    # Clear the input field and type the desired value
-                    PropertyAddress_input.clear()
-                    slow_typing(PropertyAddress_input, listing['address'])  # Slowly type the address
+                    raw = listing['address']
+                    normalized = raw.strip().replace('\n', ', ')
+                    address_no_unit = re.sub(r"\s+\S+(?=,)", "", normalized)
 
+                    PropertyAddress_input.clear()
+                    fast_typing(PropertyAddress_input, address_no_unit)
                     time.sleep(2)
 
                     # Wait for the first <li> element in the suggestion list to appear and click it

@@ -1,0 +1,8 @@
+# ignore any directories you never want in Git
+scraping/
+ImagesGoHere/
+__pycache__/
+Script setup/
+
+# now ignore JSON files whole-project
+*.json

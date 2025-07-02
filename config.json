@@ -1,7 +1,8 @@
 {
-    "base_directory": "C:/Users/marti/OneDrive/Desktop/Software Projects/FacebookListingAutomator/images",
-    "fb_username": "",
-    "fb_password": "",
+    "base_directory": "C:/Users/marti/OneDrive/Desktop/ProductionTest/HouseListingAutomation/ImagesGoHere",
+
+    "fb_username": "6476065810",
+    "fb_password": "biHnyd-zukfib-wekfe7",
     "proxy": {
         "host": "",
         "port": 22225,

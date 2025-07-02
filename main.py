@@ -24,7 +24,7 @@ st.title("Real Estate Listings Scraper")
 config = load_config()
 
 # Display and update base directory
-st.subheader("Set Base Directory")
+st.subheader("Put the path that you want to save the listings images in:")
 current_base_dir = config.get("base_directory", "")
 new_base_dir = st.text_input("Enter Base Directory:", value=current_base_dir)
 

@@ -1,5 +1,6 @@
 import json
 import csv
+from datetime import date, datetime
 import re 
 import zipfile
 import string
@@ -221,11 +222,12 @@ def scrape_website(website):
 
                             # Extracting the property address, and removing the unit number using regex
                             # ------------------------------------------------------------------------
-                            raw = addr_div.find_element(By.TAG_NAME, "h1").text
-                            # 1) flatten any newlines into “, ” so we get "…, Toronto"
-                            normalized = raw.strip().replace('\n', ', ')
-                            # 2) strip off the last “word” immediately before that comma
-                            property_address = re.sub(r"\s+\S+(?=,)", "", normalized)
+                            # raw = addr_div.find_element(By.TAG_NAME, "h1").text
+                            # # 1) flatten any newlines into “, ” so we get "…, Toronto"
+                            # normalized = raw.strip().replace('\n', ', ')
+                            # # 2) strip off the last “word” immediately before that comma
+                            # property_address = re.sub(r"\s+\S+(?=,)", "", normalized)
+                            property_address = addr_div.find_element(By.TAG_NAME, "h1").text
                             # ------------------------------------------------------------------------
 
                             property_type = addr_div.find_element(By.TAG_NAME, "h2").text
@@ -255,16 +257,66 @@ def scrape_website(website):
                                 EC.presence_of_element_located((By.XPATH, "//div[@id='section-property-info']"))
                             )
 
+                            listingInfo = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located((By.XPATH, "//div[@id='section-listing-info']"))
+                            )
+
                             # Additional Information
-                            bedrooms = get_property_info(propertyInfo, "Bedrooms")
+                            bedrooms_raw = get_property_info(propertyInfo, "Bedrooms") or ""
+                            bedrooms = bedrooms_raw.split('+', 1)[0].strip()
+
+
                             washrooms = get_property_info(propertyInfo, "Washrooms")
+                            # square_feet = get_property_info(propertyInfo, "Square Feet")
+                            # square_feet_high = square_feet.split('-')[-1].strip() if '-' in square_feet else square_feet
                             square_feet = get_property_info(propertyInfo, "Square Feet")
-                            square_feet_high = square_feet.split('-')[-1].strip() if '-' in square_feet else square_feet
+
+                            # try “Above Grade Finished SqFt” first
+                            above_sqft = get_property_info(propertyInfo, "Above Grade Finished SqFt")
+
+                            # choose final sqft_val
+                            if above_sqft and re.match(r'^\d+', above_sqft):
+                                # use the precise value if it exists
+                                sqft_val = above_sqft
+                            elif '-' in square_feet:
+                                # parse out the upper bound, subtract 50
+                                try:
+                                    hi = int(square_feet.split('-', 1)[1].strip().replace(',', ''))
+                                    sqft_val = str(max(0, hi - 50))
+                                except ValueError:
+                                    # if something weird, fall back to the raw upper text
+                                    sqft_val = square_feet.split('-')[-1].strip()
+                            else:
+                                # single number or empty
+                                sqft_val = square_feet
 
                             parking_type = get_property_info(propertyInfo, "Garage Type")
                             ac_type = get_property_info(propertyInfo, "A/C")
                             laundry_type = get_property_info(propertyInfo, "Laundry Features")
-                            heating_type = get_property_info(propertyInfo, "heating Source")
+                            heating_type = get_property_info(propertyInfo, "heating type")
+                            parking_raw = get_property_info(propertyInfo, "Total Parking Spaces")
+
+                            try:
+                                num_spaces = int(parking_raw)
+                            except (TypeError, ValueError):
+                                num_spaces = 0
+
+                            # apply your rule
+                            if num_spaces >= 1:
+                                parking_type = "garage parking"
+                            else:
+                                parking_type = "parking available"
+
+                            raw_possession_date = get_listing_info(listingInfo, "Possession Date")
+
+                            raw_date = raw_possession_date or date.today().strftime("%m/%d/%Y")
+
+                            # parse it…
+                            dt = datetime.strptime(raw_date, "%m/%d/%Y")
+
+                            # …and format it exactly as “Aug 1, 2025”
+                            date_available = f"{dt:%b} {dt.day}, {dt.year}"
+
 
                             # Collect all extracted data
                             listing_info = {
@@ -274,12 +326,13 @@ def scrape_website(website):
                                 "description": property_description,
                                 "bedrooms_number": bedrooms,
                                 "washrooms_number": washrooms,
-                                "square_feet": square_feet_high,
-                                "parking_type": parking_type,
+                                "square_feet": sqft_val,
                                 "ac_type": ac_type,
                                 "laundry_type": laundry_type,
                                 "heating_type": heating_type,
-                                "sale_or_rent": sale_or_rent
+                                "sale_or_rent": sale_or_rent,
+                                "date_available": date_available,
+                                "parking_type": parking_type
                             }
 
                             listings_data.append(listing_info)
@@ -352,11 +405,12 @@ def scrape_website(website):
                                 )
                                 # Extracting the property address, and removing the unit number using regex
                                 # ------------------------------------------------------------------------
-                                raw = addr_div.find_element(By.TAG_NAME, "h1").text
-                                # 1) flatten any newlines into “, ” so we get "…, Toronto"
-                                normalized = raw.strip().replace('\n', ', ')
-                                # 2) strip off the last “word” immediately before that comma
-                                property_address = re.sub(r"\s+\S+(?=,)", "", normalized)
+                                # raw = addr_div.find_element(By.TAG_NAME, "h1").text
+                                # # 1) flatten any newlines into “, ” so we get "…, Toronto"
+                                # normalized = raw.strip().replace('\n', ', ')
+                                # # 2) strip off the last “word” immediately before that comma
+                                # property_address = re.sub(r"\s+\S+(?=,)", "", normalized)
+                                property_address = addr_div.find_element(By.TAG_NAME, "h1").text
                                 # ------------------------------------------------------------------------
 
                                 property_type = addr_div.find_element(By.TAG_NAME, "h2").text
@@ -386,15 +440,63 @@ def scrape_website(website):
                                     EC.presence_of_element_located((By.XPATH, "//div[@id='section-property-info']"))
                                 )
 
-                                bedrooms = get_property_info(propertyInfo, "Bedrooms")
-                                washrooms = get_property_info(propertyInfo, "Washrooms")
-                                square_feet = get_property_info(propertyInfo, "Square Feet")
-                                square_feet_high = square_feet.split('-')[-1].strip() if '-' in square_feet else square_feet
+                                listingInfo = WebDriverWait(driver, 10).until(
+                                    EC.presence_of_element_located((By.XPATH, "//div[@id='section-listing-info']"))
+                                )
 
-                                parking_type = get_property_info(propertyInfo, "Garage Type")
+                                bedrooms_raw = get_property_info(propertyInfo, "Bedrooms") or ""
+                                bedrooms = bedrooms_raw.split('+', 1)[0].strip()
+
+
+                                washrooms = get_property_info(propertyInfo, "Washrooms")
+
+                                # raw “Square Feet” (might be a range)
+                                square_feet = get_property_info(propertyInfo, "Square Feet")
+
+                                # try “Above Grade Finished SqFt” first
+                                above_sqft = get_property_info(propertyInfo, "Above Grade Finished SqFt")
+
+                                # choose final sqft_val
+                                if above_sqft and re.match(r'^\d+', above_sqft):
+                                    # use the precise value if it exists
+                                    sqft_val = above_sqft
+                                elif '-' in square_feet:
+                                    # parse out the upper bound, subtract 50
+                                    try:
+                                        hi = int(square_feet.split('-', 1)[1].strip().replace(',', ''))
+                                        sqft_val = str(max(0, hi - 50))
+                                    except ValueError:
+                                        # if something weird, fall back to the raw upper text
+                                        sqft_val = square_feet.split('-')[-1].strip()
+                                else:
+                                    # single number or empty
+                                    sqft_val = square_feet
+
                                 ac_type = get_property_info(propertyInfo, "A/C")
                                 laundry_type = get_property_info(propertyInfo, "Laundry Features")
                                 heating_type = get_property_info(propertyInfo, "heating type")
+                                parking_raw = get_property_info(propertyInfo, "Total Parking Spaces")
+
+                                try:
+                                    num_spaces = int(parking_raw)
+                                except (TypeError, ValueError):
+                                    num_spaces = 0
+
+                                # apply your rule
+                                if num_spaces >= 1:
+                                    parking_type = "garage parking"
+                                else:
+                                    parking_type = "parking available"
+
+                                raw_possession_date = get_listing_info(listingInfo, "Possession Date")
+                                
+                                raw_date = raw_possession_date or date.today().strftime("%m/%d/%Y")
+
+                                # parse it…
+                                dt = datetime.strptime(raw_date, "%m/%d/%Y")
+
+                                # …and format it exactly as “Aug 1, 2025”
+                                date_available = f"{dt:%b} {dt.day}, {dt.year}"
 
                                 listing_info = {
                                     "address": property_address,
@@ -403,12 +505,13 @@ def scrape_website(website):
                                     "description": property_description,
                                     "bedrooms_number": bedrooms,
                                     "washrooms_number": washrooms,
-                                    "square_feet": square_feet_high,
-                                    "parking_type": parking_type,
+                                    "square_feet": sqft_val,
                                     "ac_type": ac_type,
                                     "laundry_type": laundry_type,
                                     "heating_type": heating_type,
-                                    "sale_or_rent": sale_or_rent
+                                    "sale_or_rent": sale_or_rent,
+                                    "date_available": date_available,
+                                    "parking_type": parking_type
                                 }
 
                                 listings_data.append(listing_info)
@@ -533,11 +636,27 @@ def get_property_info(property_info_div, field_name):
     except Exception:
         return ""
 
+def get_listing_info(property_info_div, field_name):
+    # normalize to lower‐case for both sides
+    target = field_name.strip().lower()
+    # build an XPath that lower‐cases the DT text via translate()
+    xpath = (
+      f".//dt[translate(normalize-space(.),"
+      f" 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',"
+      f" 'abcdefghijklmnopqrstuvwxyz')='{target}']"
+      f"/following-sibling::dd[1]"
+    )
+    try:
+        return property_info_div.find_element(By.XPATH, xpath).text.strip()
+    except Exception:
+        return ""
+
 def write_to_csv(listings_data):
     fieldnames = [
         'address', 'property_type', 'price', 'description', 
         'bedrooms_number', 'washrooms_number', 'square_feet', 
-        'parking_type', 'ac_type', 'laundry_type', 'heating_type', 'sale_or_rent'
+        'ac_type', 'laundry_type', 'heating_type', 'sale_or_rent', 'date_available',
+        'parking_type'
     ]
 
     with open('listings_data.csv', 'w', newline='', encoding='utf-8') as csvfile:

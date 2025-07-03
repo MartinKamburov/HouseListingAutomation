@@ -533,11 +533,17 @@ def post_facebook_ads(listings_data):
                     #-------------------------------------------------------------------------------------------------
 
                 elif "sale" in property_typeSaleOrRent:
-                    option = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.XPATH, "//div[@role='option' and contains(., 'For Sale')]"))
-                    )
-                    option.click()
-                    print("Selected 'For Sale' from the dropdown.")
+                    print("It got to For Sale!")
+                    time.sleep(2)
+
+                    try:
+                        rent_option = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH, "//div[@role='option' and contains(., 'For Sale')]"))
+                        )
+                        ActionChains(driver).move_to_element(rent_option).click().perform()
+                        print("Selected 'Rent' from the dropdown.")
+                    except Exception as e:
+                        print(f"Error selecting 'For Sale': {e}")
 
                     time.sleep(2)
 
@@ -545,40 +551,53 @@ def post_facebook_ads(listings_data):
                     #-------------------------------------------------------------------------------------------------
                     # Dropdown menus
                     # Wait for the dropdown to be clickable and click it to reveal the options
-                    dropdownPType_button = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.XPATH,
-                            "//label[@role='combobox' and .//span[text()='Property type']]"
-                        ))
-                    )
-                    dropdownPType_button.click()
-                    print("Property type dropdown clicked to reveal options.")
+                    try:
+                        dropdownPropertyType_button = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH,
+                                "//label[@role='combobox' and .//span[text()='Property type']]"
+                            ))
+                        )
+                        dropdownPropertyType_button.click()
+                        print("Property type dropdown clicked to reveal options.")
+                    except Exception as e:
+                        print(f"Error clicking dropdown: {e}")
 
                     time.sleep(2)
 
-                    # Get the property type from the current listing
-                    property_type = listing['property_type'].lower()
+                    property_type = listing.get('property_type', '').lower()
 
-                    # Dynamically choose the option based on the property_type
-                    if "apartment" in property_type or "apt" in property_type:
-                        option = WebDriverWait(driver, 10).until(
-                            EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Apartment')]"))
-                        )
-                        option.click()
-                        print("Selected 'Apartment' from the dropdown.")
-                    elif "townhouse" in property_type:
-                        option = WebDriverWait(driver, 10).until(
-                            EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Townhouse')]"))
-                        )
-                        option.click()
-                        print("Selected 'Townhouse' from the dropdown.")
-                    elif "house" in property_type:
-                        option = WebDriverWait(driver, 10).until(
-                            EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'House')]"))
-                        )
-                        option.click()
-                        print("Selected 'House' from the dropdown.")
-                    else:
-                        print(f"Property type '{property_type}' not recognized.")
+                    house_keywords = [
+                        "detached",    # Detached 2-Storey, Detached Bungalow…
+                        "bungalow",
+                        "backspl",     # Detached Backsplit 5
+                        "semi",        # Semi-Detached (if you ever hit that)
+                        "link",        # Link-detached, Link-semi, etc.
+                        "house",
+                    ]
+                    
+                    try:
+                        if "apartment" in property_type:
+                            option = WebDriverWait(driver, 10).until(
+                                EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Apartment')]"))
+                            )
+                            option.click()
+                            print("Selected 'Apartment' property type.")
+                        elif any(kw in property_type for kw in house_keywords):
+                            option = WebDriverWait(driver, 10).until(
+                                EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'House')]"))
+                            )
+                            option.click()
+                            print("Selected 'House' property type.")
+                        elif "townhouse" in property_type or "twnhouse" in property_type:
+                            option = WebDriverWait(driver, 10).until(
+                                EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Townhouse')]"))
+                            )
+                            option.click()
+                            print("Selected 'Townhouse' property type.")
+                        else:
+                            print(f"Property type '{property_type}' not recognized.")
+                    except Exception as e:
+                        print(f"Error selecting property type '{property_type}': {e}")
 
                     time.sleep(2)
 
@@ -634,7 +653,7 @@ def post_facebook_ads(listings_data):
 
                     # Clear the input field and type the desired value
                     price_input.clear()
-                    slow_typing(price_input, listing['price'])  # Slowly type the number of bedrooms
+                    slow_typing(price_input, listing['price'])  # Slowly type the price
 
                     time.sleep(2)
                     #-------------------------------------------------------------------------------------------------
@@ -671,25 +690,28 @@ def post_facebook_ads(listings_data):
                     #-------------------------------------------------------------------------------------------------
                     property_description_label = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.XPATH,
-                            "//label[.//span[normalize-space(text())='Rental description']]//textarea"
+                            "//label[.//span[normalize-space(text())='Property description']]//textarea"
                         ))
                     )
-                    
+
                     driver.execute_script("arguments[0].scrollIntoView(true);", property_description_label)
+                    
                     # Clear the existing text and input the new property description
                     property_description_label.clear()
-                    fast_typing(property_description_label, listing['description'])
+                    fast_typing(property_description_label, listing['description'])  # Slowly type the number of bedrooms
 
                     time.sleep(2)
                     #-------------------------------------------------------------------------------------------------
                     #-------------------------------------------------------------------------------------------------
                     PropertySqft_input = WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH, "//label[@aria-label='Property square feet']//following::input[@type='text'][1]"))
+                        EC.element_to_be_clickable((By.XPATH,
+                            "//label[.//span[normalize-space(text())='Property square feet']]//input[@type='text']"
+                        ))
                     )
 
                     # Clear the input field and type the desired value
                     PropertySqft_input.clear()
-                    slow_typing(PropertySqft_input, listing['square_feet'])
+                    slow_typing(PropertySqft_input, listing['square_feet'])  # Slowly type the number of bedrooms
 
                     time.sleep(2)
                     #-------------------------------------------------------------------------------------------------
@@ -703,20 +725,20 @@ def post_facebook_ads(listings_data):
                     dropdownLaundryType_button.click()
 
                     laundry_type = listing.get('laundry_type', '').lower()
-                    laundryChoice = ""
 
-                    if "ensuite" in laundry_type or "in-suite" in laundry_type or "in-unit" in laundry_type:
+                    if any(tok in laundry_type for tok in ("ensuite", "in-suite", "in-unit")):
                         laundryChoice = "In-unit laundry"
-                    elif "area" in laundry_type:
-                        laundryChoice = "Laundry available"
-                    elif "building" in laundry_type:
-                        laundryChoice = "Laundry in building"
                     elif "none" in laundry_type:
                         laundryChoice = "None"
+                    elif "area" in laundry_type:
+                        laundryChoice = "Laundry available"
+                    # catch basement and laundry room under “in building”
+                    elif any(tok in laundry_type for tok in ("building", "basement", "room")):
+                        laundryChoice = "Laundry in building"
                     else:
                         laundryChoice = ""
 
-                    if laundryChoice != "":
+                    if laundryChoice:
                         optionLaundry = WebDriverWait(driver, 10).until(
                             EC.element_to_be_clickable((By.XPATH,
                                 f"//span[normalize-space(text())='{laundryChoice}']"
@@ -724,8 +746,9 @@ def post_facebook_ads(listings_data):
                         )
                         optionLaundry.click()
                         print(f"Selected '{laundryChoice}' for laundry_type='{listing['laundry_type']}'")
-                    
+
                     time.sleep(2)
+
 
                     #-------------------------------------------------------------------------------------------------
                     #-------------------------------------------------------------------------------------------------
@@ -740,7 +763,8 @@ def post_facebook_ads(listings_data):
                     parking_type = listing.get('parking_type', '').lower()
                     parkingChoice = ""
 
-                    if "underground" in parking_type or "built-in" in parking_type or "built in" in parking_type or "built" in parking_type:
+
+                    if "underground" in parking_type or "built-in" in parking_type or "built in" in parking_type or "built" in parking_type or "garage" in parking_type: 
                         parkingChoice = "Garage parking"
                     elif "street" in parking_type:
                         parkingChoice = "Street parking"
@@ -761,7 +785,7 @@ def post_facebook_ads(listings_data):
                         )
                         optionParking.click()
                         print(f"Selected '{parkingChoice}' for parking_type='{listing['parking_type']}'")
-                    
+
                     time.sleep(2)
 
                     #-------------------------------------------------------------------------------------------------

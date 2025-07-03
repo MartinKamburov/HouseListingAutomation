@@ -243,6 +243,7 @@ def scrape_website(website):
                             lease_label = WebDriverWait(price_div, 10).until(
                                 EC.presence_of_element_located((By.XPATH, ".//label[contains(@class, 'label')]"))
                             )
+
                             sale_or_rent = lease_label.text.strip().lower()
 
                             description_div = WebDriverWait(report_div, 10).until(

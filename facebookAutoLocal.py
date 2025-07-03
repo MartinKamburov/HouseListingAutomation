@@ -5,9 +5,11 @@ import zipfile
 import string
 import os
 import time
+from datetime import datetime, date
 import random
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
@@ -193,6 +195,15 @@ def post_facebook_ads(listings_data):
 
                     # Set the rental type dynamically based on your listing
                     rental_type = listing.get('property_type', '').lower()
+
+                    house_keywords = [
+                        "detached",    # Detached 2-Storey, Detached Bungalow…
+                        "bungalow",
+                        "backspl",     # Detached Backsplit 5
+                        "semi",        # Semi-Detached (if you ever hit that)
+                        "link",        # Link-detached, Link-semi, etc.
+                        "house",
+                    ]
                     
                     try:
                         if "apartment" in rental_type:
@@ -201,13 +212,13 @@ def post_facebook_ads(listings_data):
                             )
                             option.click()
                             print("Selected 'Apartment' rental type.")
-                        elif "house" in rental_type:
+                        elif any(kw in rental_type for kw in house_keywords):
                             option = WebDriverWait(driver, 10).until(
                                 EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'House')]"))
                             )
                             option.click()
                             print("Selected 'House' rental type.")
-                        elif "townhouse" in rental_type:
+                        elif "townhouse" in rental_type or "twnhouse" in rental_type:
                             option = WebDriverWait(driver, 10).until(
                                 EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Townhouse')]"))
                             )
@@ -338,6 +349,36 @@ def post_facebook_ads(listings_data):
                     #-------------------------------------------------------------------------------------------------
                     #-------------------------------------------------------------------------------------------------
                     
+                    # 1) parse the scraped “Jul 3, 2025” style string
+                    raw = listing.get('date_available', '')
+                    try:
+                        scraped_dt = datetime.strptime(raw, "%b %d, %Y").date()
+                    except ValueError:
+                        # fallback to today if parsing fails
+                        scraped_dt = date.today()
+
+                    # 2) clamp it so it’s never before today
+                    dt_to_use = max(scraped_dt, date.today())
+
+                    date_available = f"{dt_to_use:%b} {dt_to_use.day}, {dt_to_use.year}"
+
+                    date_input = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((
+                            By.XPATH,
+                            "//label[.//span[text()='Date available']]//input[@role='combobox']"
+                        ))
+                    )
+
+                    date_input.click()
+                    slow_typing(date_input, date_available)
+                    time.sleep(2)
+                    date_input.send_keys(Keys.ENTER)
+
+                    time.sleep(2)
+
+                    #-------------------------------------------------------------------------------------------------
+                    #-------------------------------------------------------------------------------------------------
+                    
                     dropdownLaundryType_button = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.XPATH,
                             "//label[@role='combobox' and .//span[text()='Laundry type']]"
@@ -346,16 +387,16 @@ def post_facebook_ads(listings_data):
                     dropdownLaundryType_button.click()
 
                     laundry_type = listing.get('laundry_type', '').lower()
-                    laundryChoice = ""
 
-                    if "ensuite" in laundry_type or "in-suite" in laundry_type or "in-unit" in laundry_type:
+                    if any(tok in laundry_type for tok in ("ensuite", "in-suite", "in-unit")):
                         laundryChoice = "In-unit laundry"
-                    elif "area" in laundry_type:
-                        laundryChoice = "Laundry available"
-                    elif "building" in laundry_type:
-                        laundryChoice = "Laundry in building"
                     elif "none" in laundry_type:
                         laundryChoice = "None"
+                    elif "area" in laundry_type:
+                        laundryChoice = "Laundry available"
+                    # catch basement and laundry room under “in building”
+                    elif any(tok in laundry_type for tok in ("building", "basement", "room")):
+                        laundryChoice = "Laundry in building"
                     else:
                         laundryChoice = ""
 
@@ -383,7 +424,8 @@ def post_facebook_ads(listings_data):
                     parking_type = listing.get('parking_type', '').lower()
                     parkingChoice = ""
 
-                    if "underground" in parking_type or "built-in" in parking_type or "built in" in parking_type or "built" in parking_type:
+
+                    if "underground" in parking_type or "built-in" in parking_type or "built in" in parking_type or "built" in parking_type or "garage" in parking_type: 
                         parkingChoice = "Garage parking"
                     elif "street" in parking_type:
                         parkingChoice = "Street parking"
@@ -870,8 +912,13 @@ def post_facebook_ads(listings_data):
                             print(f"📸 Uploaded {len(image_files)} image(s) for {listing['address']}")
                 #-------------------------------------------------------------------------------------------------
                 #-------------------------------------------------------------------------------------------------
+                # This will automatically wait a base 5 seconds plus 2 seconds per image
+                num_images = len(image_files)
+                base_delay = 5   # seconds
+                per_image  = 2   # seconds
+                wait_time  = base_delay + per_image * num_images
 
-                time.sleep(10)
+                time.sleep(wait_time)
 
                 # Click of the Next button:
                 #-------------------------------------------------------------------------------------------------
@@ -888,7 +935,7 @@ def post_facebook_ads(listings_data):
                 #-------------------------------------------------------------------------------------------------
                 #-------------------------------------------------------------------------------------------------
 
-                time.sleep(5)
+                time.sleep(10)
 
                 # Publish button clicking
                 #-------------------------------------------------------------------------------------------------
@@ -904,7 +951,7 @@ def post_facebook_ads(listings_data):
                     print(f"Error occurred while clicking the 'Publish' button: {e}")
 
                 # Takes about 20-30 seconds to publish the listing so potentially add a time.sleep here
-                time.sleep(30)
+                time.sleep(wait_time)
                 #-------------------------------------------------------------------------------------------------
                 #-------------------------------------------------------------------------------------------------
 

@@ -670,7 +670,7 @@ def post_facebook_ads(listings_data):
                     address_no_unit = re.sub(r"\s+\S+(?=,)", "", normalized)
 
                     PropertyAddress_input.clear()
-                    fast_typing(PropertyAddress_input, address_no_unit)
+                    fast_typing(PropertyAddress_input, raw)
                     time.sleep(2)
 
                     # Wait for the first <li> element in the suggestion list to appear and click it
@@ -906,6 +906,14 @@ def post_facebook_ads(listings_data):
                             for f in os.listdir(base_dir)
                             if f.lower().endswith(('.jpg', '.jpeg', '.png'))
                         ]
+
+                        # 1) make sure they are in numeric order …
+                        image_files.sort(key=lambda p: natural_key(os.path.basename(p)))
+
+                        # 2) … then swap the first two so the “second” photo goes first
+                        if len(image_files) >= 2:
+                            image_files[0], image_files[1] = image_files[1], image_files[0]
+
                         if not image_files:
                             print(f"❌ No images found in {base_dir}.")
                             # record the skip
@@ -934,6 +942,7 @@ def post_facebook_ads(listings_data):
                             # send all your file paths
                             file_input.send_keys("\n".join(image_files))
                             print(f"📸 Uploaded {len(image_files)} image(s) for {listing['address']}")
+
                 #-------------------------------------------------------------------------------------------------
                 #-------------------------------------------------------------------------------------------------
                 # This will automatically wait a base 5 seconds plus 2 seconds per image
@@ -988,6 +997,11 @@ def post_facebook_ads(listings_data):
     finally:
         driver.quit()
         print("The driver quit")
+
+
+def natural_key(s: str):
+    return [int(t) if t.isdigit() else t.lower()
+            for t in re.split(r'(\d+)', s)]
 
 
 # ----------------------------------------------------------------------
